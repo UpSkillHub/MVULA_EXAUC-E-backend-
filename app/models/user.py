@@ -8,7 +8,7 @@ class User(db.Model):
     organization_id = db.Column(
         db.Integer,
         db.ForeignKey("organizations.id"),
-        nullable=False
+        nullable=True
     )
     name = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)

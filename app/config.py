@@ -2,12 +2,14 @@ import os
 from urllib.parse import quote_plus
 from dotenv import load_dotenv
 from pathlib import Path
+from datetime import timedelta
 
 load_dotenv()
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=30)
 
     password = quote_plus(os.getenv("DB_PASSWORD", ""))
 
@@ -23,7 +25,7 @@ class Config:
 
     SQLALCHEMY_ENGINE_OPTIONS = {}
 
-    if os.getenv("DB_HOST") != "localhost":
+    if os.getenv("DB_HOST") not in ("localhost", "127.0.0.1"):
         SQLALCHEMY_ENGINE_OPTIONS = {
             "connect_args": {
                 "ssl": {
@@ -35,5 +37,6 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     UPLOAD_FOLDER = str(BASE_DIR / "uploads")
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024

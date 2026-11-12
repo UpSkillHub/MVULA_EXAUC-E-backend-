@@ -1,45 +1,48 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_file
 from app.extensions import db
 from app.models.document import Document
+from app.models.organization import Organization
+from app.models.user import User
+from app.models.permission import Permission
 import os
 import uuid
 from werkzeug.utils import secure_filename
-from app.models.organization import Organization
-from app.models.user import User
-from flask import Blueprint, request, jsonify, current_app, send_file
-
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 document_bp = Blueprint(
     "documents", __name__, url_prefix="/documents"
 )
 
+def get_current_user():
+    user_id = get_jwt_identity()
+    return db.session.get(User, int(user_id))
+
 ALLOWED_EXTENSIONS = {"pdf", "txt", "png", "jpg", "jpeg", "zip"}
 
-
 @document_bp.route("/upload", methods=["POST"])
+@jwt_required()
 def upload_document():
     file = request.files.get("file")
     organization_id = request.form.get("organization_id", type=int)
-    uploaded_by = request.form.get("uploaded_by", type=int)
+    current_user = get_current_user()
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+    uploaded_by = current_user.id
 
     if not file or not file.filename:
         return jsonify({"error": "A file is required"}), 400
 
-    if not organization_id or not uploaded_by:
-        return jsonify({"error": "Organization ID and user ID are required"}), 400
+    if not organization_id:
+        return jsonify({"error": "Organization ID is required"}), 400
 
     organization = Organization.query.get(organization_id)
     if not organization:
         return jsonify({"error": "Organization not found"}), 404
 
-    user = User.query.get(uploaded_by)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    if user.organization_id != organization_id:
-        return jsonify({
-            "error": "This user does not belong to the specified organization"
-        }), 403
+    if current_user.role == "superadmin":
+        pass
+    elif current_user.organization_id != organization_id:
+        return jsonify({"error": "Access denied"}), 403
 
     original_name = secure_filename(file.filename)
 
@@ -100,8 +103,19 @@ def upload_document():
     }), 201
 
 @document_bp.route("/", methods=["GET"])
+@jwt_required()
 def get_documents():
-    documents = Document.query.all()
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    if current_user.role == "superadmin":
+        documents = Document.query.all()
+    else:
+        documents = Document.query.filter_by(
+            organization_id=current_user.organization_id
+        ).all()
 
     return jsonify([
         {
@@ -116,11 +130,21 @@ def get_documents():
     ]), 200
 
 @document_bp.route("/<int:document_id>", methods=["GET"])
+@jwt_required()
 def get_document(document_id):
     document = Document.query.get(document_id)
 
     if not document:
         return jsonify({"error": "Document not found"}), 404
+
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    if current_user.role != "superadmin":
+        if current_user.organization_id != document.organization_id:
+            return jsonify({"error": "Access denied"}), 403
 
     return jsonify({
         "id": document.id,
@@ -132,15 +156,28 @@ def get_document(document_id):
     }), 200
 
 @document_bp.route("/search", methods=["GET"])
+@jwt_required()
 def search_documents():
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
     name = request.args.get("name", "").strip()
 
     if not name:
         return jsonify({"error": "Please provide a filename to search"}), 400
 
-    documents = Document.query.filter(
+    query = Document.query.filter(
         Document.name.ilike(f"%{name}%")
-    ).all()
+    )
+
+    if current_user.role != "superadmin":
+        query = query.filter_by(
+            organization_id=current_user.organization_id
+        )
+
+    documents = query.all()
 
     return jsonify([
         {
@@ -155,11 +192,38 @@ def search_documents():
     ]), 200
 
 @document_bp.route("/<int:document_id>", methods=["DELETE"])
+@jwt_required()
 def delete_document(document_id):
     document = Document.query.get(document_id)
 
     if not document:
         return jsonify({"error": "Document not found"}), 404
+
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    if current_user.role == "superadmin":
+        pass
+    elif current_user.role == "admin":
+        if current_user.organization_id != document.organization_id:
+            return jsonify({"error": "Access denied"}), 403
+    elif current_user.role == "member":
+        if current_user.organization_id != document.organization_id:
+            return jsonify({"error": "Access denied"}), 403
+
+        permission = Permission.query.filter_by(
+            user_id=current_user.id,
+            document_id=document.id
+        ).first()
+
+        if not permission or not permission.can_delete:
+            return jsonify({
+                "error": "You do not have permission to delete this document"
+            }), 403
+    else:
+        return jsonify({"error": "Access denied"}), 403
 
     file_path = document.file_path
 
@@ -174,11 +238,32 @@ def delete_document(document_id):
     }), 200
 
 @document_bp.route("/<int:document_id>/download", methods=["GET"])
+@jwt_required()
 def download_document(document_id):
     document = Document.query.get(document_id)
 
     if not document:
         return jsonify({"error": "Document not found"}), 404
+
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    if current_user.role != "superadmin":
+        if current_user.organization_id != document.organization_id:
+            return jsonify({"error": "Access denied"}), 403
+
+    if current_user.role == "member":
+        permission = Permission.query.filter_by(
+            user_id=current_user.id,
+            document_id=document.id
+        ).first()
+
+        if not permission or not permission.can_download:
+            return jsonify({
+                "error": "You do not have permission to download this document"
+            }), 403
 
     if not os.path.exists(document.file_path):
         return jsonify({"error": "Document file not found"}), 404
@@ -191,11 +276,38 @@ def download_document(document_id):
     )
 
 @document_bp.route("/<int:document_id>/replace", methods=["PUT"])
+@jwt_required()
 def replace_document(document_id):
     document = Document.query.get(document_id)
 
     if not document:
         return jsonify({"error": "Document not found"}), 404
+
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    if current_user.role == "superadmin":
+        pass
+    elif current_user.role == "admin":
+        if current_user.organization_id != document.organization_id:
+            return jsonify({"error": "Access denied"}), 403
+    elif current_user.role == "member":
+        if current_user.organization_id != document.organization_id:
+            return jsonify({"error": "Access denied"}), 403
+
+        permission = Permission.query.filter_by(
+            user_id=current_user.id,
+            document_id=document.id
+        ).first()
+
+        if not permission or not permission.can_edit:
+            return jsonify({
+                "error": "You do not have permission to edit this document"
+            }), 403
+    else:
+        return jsonify({"error": "Access denied"}), 403
 
     file = request.files.get("file")
 
@@ -248,11 +360,32 @@ def replace_document(document_id):
     }), 200
 
 @document_bp.route("/<int:document_id>/view", methods=["GET"])
+@jwt_required()
 def view_document(document_id):
     document = Document.query.get(document_id)
 
     if not document:
         return jsonify({"error": "Document not found"}), 404
+
+    current_user = get_current_user()
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    if current_user.role != "superadmin":
+        if current_user.organization_id != document.organization_id:
+            return jsonify({"error": "Access denied"}), 403
+
+    if current_user.role == "member":
+        permission = Permission.query.filter_by(
+            user_id=current_user.id,
+            document_id=document.id
+        ).first()
+
+        if not permission or not permission.can_view:
+            return jsonify({
+                "error": "You do not have permission to view this document"
+            }), 403
 
     if not os.path.exists(document.file_path):
         return jsonify({"error": "Document file not found"}), 404
