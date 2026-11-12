@@ -16,3 +16,12 @@ Week 2
 - Implemented document permission management, including assigning, updating, retrieving, and deleting permissions.
 - Added user authentication with JWT access tokens.
 - Tested API functionality using Postman and Browser.
+
+Week 3
+- Implemented role-based access control for members, organization admins, and superadmins.
+- Enforced document permissions for viewing, downloading, replacing, and deleting documents.
+- Integrated JWT authentication to identify users and control access to protected endpoints.
+- Restricted permission management to organization admins and superadmins.
+- Implemented organization-level access restrictions to prevent administrators from managing resources outside their organizations.
+- Maintained document listing, details, and search access for users within their organizations.
+- Improved user role management, including superadmin privileges.
