@@ -2,6 +2,8 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.user import User
 from app.models.organization import Organization
+from app.models.document import Document
+from app.models.permission import Permission
 from werkzeug.security import generate_password_hash
 from sqlalchemy.exc import IntegrityError
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -253,6 +255,17 @@ def delete_user(user_id):
             }), 403
     else:
         return jsonify({"error": "Access denied"}), 403
+
+    documents = Document.query.filter_by(
+        uploaded_by=user.id
+    ).all()
+
+    for document in documents:
+        document.uploaded_by = None
+
+    Permission.query.filter_by(
+        user_id=user.id
+    ).delete(synchronize_session=False)
 
     db.session.delete(user)
     db.session.commit()

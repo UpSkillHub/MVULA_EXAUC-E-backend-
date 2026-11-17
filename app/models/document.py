@@ -13,7 +13,7 @@ class Document(db.Model):
     uploaded_by = db.Column(
         db.Integer,
         db.ForeignKey("users.id"),
-        nullable=False
+        nullable=True
     )
     name = db.Column(db.String(255), nullable=False)
     file_path = db.Column(db.String(500), nullable=False)
