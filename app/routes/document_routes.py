@@ -227,11 +227,18 @@ def delete_document(document_id):
 
     file_path = document.file_path
 
-    if os.path.exists(file_path):
-        os.remove(file_path)
+    permissions = Permission.query.filter_by(
+        document_id=document.id
+    ).all()
+
+    for permission in permissions:
+        db.session.delete(permission)
 
     db.session.delete(document)
     db.session.commit()
+
+    if os.path.exists(file_path):
+        os.remove(file_path)
 
     return jsonify({
         "message": "Document deleted successfully"
