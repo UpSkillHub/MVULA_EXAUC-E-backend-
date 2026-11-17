@@ -397,6 +397,7 @@ def view_document(document_id):
                 "error": "You do not have permission to view this document"
             }), 403
 
+    print("DOCUMENT FILE PATH:", document.file_path)
     if not os.path.exists(document.file_path):
         return jsonify({"error": "Document file not found"}), 404
 
