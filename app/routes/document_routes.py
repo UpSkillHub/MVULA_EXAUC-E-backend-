@@ -231,8 +231,11 @@ def delete_document(document_id):
         document_id=document.id
     ).all()
 
-    for permission in permissions:
-        db.session.delete(permission)
+    Permission.query.filter_by(
+        document_id=document.id
+    ).delete(synchronize_session=False)
+
+    db.session.flush()
 
     db.session.delete(document)
     db.session.commit()
