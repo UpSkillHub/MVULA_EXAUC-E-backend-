@@ -25,3 +25,11 @@ Week 3
 - Implemented organization-level access restrictions to prevent administrators from managing resources outside their organizations.
 - Maintained document listing, details, and search access for users within their organizations.
 - Improved user role management, including superadmin privileges.
+
+Week 4
+- Implemented automatic API documentation using Swagger (Flasgger).
+- Documented all 25 API endpoints, including request parameters, request bodies, responses, and authentication requirements.
+- Integrated Swagger UI into the project homepage for easy access to API documentation and testing.
+- Deployed the updated application and Swagger documentation to Render.
+- Tested the deployed API endpoints using Swagger UI and verified successful integration with the Aiven MySQL database.
+- Completed final testing and verification of the Document Management System.
