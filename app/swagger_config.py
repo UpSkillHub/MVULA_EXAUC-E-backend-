@@ -61,7 +61,6 @@ SWAGGER_TEMPLATE = {
         "version": "1.0.0"
     },
     "basePath": "/",
-    "schemes": ["http", "https"],
     "consumes": ["application/json"],
     "produces": ["application/json"],
     "securityDefinitions": {
