@@ -1,4 +1,5 @@
 from flask import Flask, render_template
+from app.swagger_config import SWAGGER_TEMPLATE
 from app.config import Config
 from app.extensions import db, migrate, jwt
 from app.routes.organization_routes import organization_bp
@@ -7,6 +8,7 @@ from app.routes.document_routes import document_bp
 from app.routes.permission_routes import permission_bp
 from app.routes.auth_routes import auth_bp
 from app import models
+from flasgger import Swagger
 
 def create_app():
     app = Flask(__name__)
@@ -25,5 +27,7 @@ def create_app():
     @app.route("/")
     def home():
         return render_template("index.html")
+
+    Swagger(app, template=SWAGGER_TEMPLATE)
 
     return app

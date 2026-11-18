@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -60,6 +61,25 @@
         .base-url a {
             color: #1f3c88;
             font-weight: bold;
+        }
+
+        .swagger-link {
+            text-align: center;
+            margin: 25px 0;
+        }
+
+        .swagger-link a {
+            display: inline-block;
+            background-color: #1f3c88;
+            color: white;
+            padding: 12px 22px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .swagger-link a:hover {
+            background-color: #162d68;
         }
 
         .table-wrapper {
@@ -140,9 +160,13 @@
         </a>
     </div>
 
+    <div class="swagger-link">
+        <a href="/apidocs/">Open Swagger API Documentation</a>
+    </div>
+
     <p>
-        The following endpoints can be tested using Postman
-        or another API testing tool.
+        The following endpoints can be tested using Swagger UI,
+        Postman, or another API testing tool.
     </p>
 
     <h2>1. Organization Management</h2>
@@ -206,7 +230,7 @@
                 <tr>
                     <td class="method get">GET</td>
                     <td class="endpoint">/users/</td>
-                    <td>Retrieve all users</td>
+                    <td>Retrieve users visible to the current user</td>
                 </tr>
                 <tr>
                     <td class="method get">GET</td>
@@ -252,7 +276,7 @@
                 <tr>
                     <td class="method get">GET</td>
                     <td class="endpoint">/documents/</td>
-                    <td>Retrieve all documents</td>
+                    <td>Retrieve documents accessible to the current user</td>
                 </tr>
                 <tr>
                     <td class="method get">GET</td>
@@ -308,7 +332,7 @@
                 <tr>
                     <td class="method get">GET</td>
                     <td class="endpoint">/permissions/</td>
-                    <td>Retrieve all permission records</td>
+                    <td>Retrieve permission records</td>
                 </tr>
                 <tr>
                     <td class="method get">GET</td>
