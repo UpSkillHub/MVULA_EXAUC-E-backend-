@@ -342,13 +342,24 @@ P["/documents/{document_id}/replace"] = {
         tags=["Documents"]
     )
 }
+
 P["/documents/{document_id}/view"] = {
     "get": operation(
         "View a document in the browser", "view_document",
         parameters=[path_parameter("document_id", "Document ID")],
         success="Returns the document for inline viewing.",
-        extra_responses={403: "Access denied or can_view permission is missing.",
-                         404: "Document, current user, or stored file not found."},
+        extra_responses={
+            200: {
+                "description": "Document file returned successfully.",
+                "content": {
+                    "application/octet-stream": {
+                        "schema": {"type": "string", "format": "binary"}
+                    }
+                }
+            },
+            403: "Access denied or can_view permission is missing.",
+            404: "Document, current user, or stored file not found."
+        },
         tags=["Documents"]
     )
 }
