@@ -6,14 +6,15 @@ This file documents the API without adding docstrings to individual routes.
 def response(description):
     return {"description": description}
 
+
 def operation(summary, operation_id, *, parameters=None, protected=True,
               consumes=None, success="Successful response", extra_responses=None,
-              tags=None):
+              tags=None, produces=None):
     result = {
         "summary": summary,
         "operationId": operation_id,
         "tags": tags or [],
-        "produces": ["application/json"],
+        "produces": produces or ["application/json"],
         "responses": {"200": response(success)}
     }
     if parameters:
@@ -24,8 +25,11 @@ def operation(summary, operation_id, *, parameters=None, protected=True,
         result["consumes"] = consumes
     if extra_responses:
         result["responses"].update({
-            str(code): response(description)
-            for code, description in extra_responses.items()
+            str(code): (
+                definition if isinstance(definition, dict)
+                else response(definition)
+            )
+            for code, definition in extra_responses.items()
         })
     return result
 
@@ -342,19 +346,24 @@ P["/documents/{document_id}/replace"] = {
         tags=["Documents"]
     )
 }
-
 P["/documents/{document_id}/view"] = {
     "get": operation(
         "View a document in the browser", "view_document",
-        parameters=[path_parameter("document_id", "Document ID")],
-        success="Returns the document for inline viewing.",
+        parameters=[
+            path_parameter("document_id", "Document ID")
+        ],
+        success="Document file returned successfully.",
+        produces=[
+            "application/pdf",
+            "image/png",
+            "image/jpeg",
+            "application/octet-stream"
+        ],
         extra_responses={
             200: {
                 "description": "Document file returned successfully.",
-                "content": {
-                    "application/octet-stream": {
-                        "schema": {"type": "string", "format": "binary"}
-                    }
+                "schema": {
+                    "type": "file"
                 }
             },
             403: "Access denied or can_view permission is missing.",
@@ -363,7 +372,6 @@ P["/documents/{document_id}/view"] = {
         tags=["Documents"]
     )
 }
-
 # Permissions (5 endpoints)
 P["/permissions/"] = {
     "post": operation(
